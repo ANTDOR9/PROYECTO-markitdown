@@ -88,6 +88,16 @@ You can also pipe content:
 cat path-to-file.pdf | markitdown
 ```
 
+### Graphical interface
+
+No terminal needed. After installing, run:
+
+```bash
+markitdown-gui
+```
+
+Add one or more files, press **Convert**, then copy or save the Markdown. For drag & drop, install `pip install 'markitdown[gui]'`.
+
 ### Optional Dependencies
 MarkItDown has optional dependencies for activating various file formats. Earlier in this document, we installed all optional dependencies with the `[all]` option. However, you can also install them individually for more control. For example:
 
