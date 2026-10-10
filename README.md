@@ -14,7 +14,8 @@ Convierte documentos a Markdown: PDF, Word, PowerPoint, Excel, HTML, CSV, JSON, 
 
 Dentro del programa:
 
-1. Pulsa **Agregar archivos…** (o arrástralos a la ventana).
+1. Pulsa **Agregar archivos…** o **Agregar carpeta…** (también puedes arrastrarlos a la ventana).
+   Con una carpeta se agregan todos los archivos compatibles (PDF, Word, Excel, PowerPoint, HTML, CSV, etc.); marca o desmarca **Incluir subcarpetas**.
 2. Pulsa **Convertir**.
 3. Elige un archivo de la lista para ver el resultado, luego **Copiar** o **Guardar como .md…**.
    Con varios archivos usa **Guardar todo…**.

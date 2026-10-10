@@ -18,13 +18,18 @@ _STRINGS = {
     "en": {
         "title": "MarkItDown",
         "add": "Add files…",
+        "add_folder": "Add folder…",
+        "subfolders": "Include subfolders",
+        "pick_input": "Choose a folder with documents",
+        "added": "Added {n} file(s).",
+        "none_found": "No supported files found in that folder.",
         "clear": "Clear",
         "convert": "Convert",
         "copy": "Copy",
         "save": "Save as .md…",
         "save_all": "Save all…",
-        "drop": "Drag files here, or click “Add files…”",
-        "drop_plain": "Click “Add files…” to choose the documents to convert",
+        "drop": "Drag files here, or click “Add files…” or “Add folder…”",
+        "drop_plain": "Click “Add files…” or “Add folder…” to choose the documents to convert",
         "ready": "Ready.",
         "converting": "Converting {i}/{n}: {name}",
         "done": "Done: {ok} converted, {bad} failed.",
@@ -41,13 +46,18 @@ _STRINGS = {
     "es": {
         "title": "MarkItDown",
         "add": "Agregar archivos…",
+        "add_folder": "Agregar carpeta…",
+        "subfolders": "Incluir subcarpetas",
+        "pick_input": "Elige una carpeta con documentos",
+        "added": "Se agregaron {n} archivo(s).",
+        "none_found": "No se encontraron archivos compatibles en esa carpeta.",
         "clear": "Limpiar",
         "convert": "Convertir",
         "copy": "Copiar",
         "save": "Guardar como .md…",
         "save_all": "Guardar todo…",
-        "drop": "Arrastra archivos aquí o pulsa «Agregar archivos…»",
-        "drop_plain": "Pulsa «Agregar archivos…» para elegir los documentos a convertir",
+        "drop": "Arrastra archivos aquí o pulsa «Agregar archivos…» o «Agregar carpeta…»",
+        "drop_plain": "Pulsa «Agregar archivos…» o «Agregar carpeta…» para elegir los documentos a convertir",
         "ready": "Listo.",
         "converting": "Convirtiendo {i}/{n}: {name}",
         "done": "Terminado: {ok} convertidos, {bad} con error.",
@@ -64,12 +74,26 @@ _STRINGS = {
 }
 
 
+SUPPORTED_EXTENSIONS = {
+    ".pdf", ".docx", ".pptx", ".xlsx", ".xls", ".csv", ".json", ".xml",
+    ".html", ".htm", ".txt", ".md", ".epub", ".msg", ".ipynb", ".zip", ".rss",
+}
+
+
+def scan_folder(folder: Path, recursive: bool = True) -> List[Path]:
+    """Supported files inside *folder*, sorted by path."""
+    it = folder.rglob("*") if recursive else folder.glob("*")
+    return sorted(
+        p for p in it if p.is_file() and p.suffix.lower() in SUPPORTED_EXTENSIONS
+    )
+
+
 def _detect_lang() -> str:
     try:
         code = (locale.getlocale()[0] or "").lower()
     except Exception:
         code = ""
-    return "es" if code.startswith("es") else "en"
+    return "en" if code.startswith(("en", "english")) else "es"
 
 
 def convert_path(path: str, md=None) -> Tuple[bool, str]:
@@ -138,10 +162,13 @@ def main() -> None:
     top = ttk.Frame(root, padding=8)
     top.pack(fill="x")
     btn_add = ttk.Button(top, text=s["add"])
+    btn_folder = ttk.Button(top, text=s["add_folder"])
     btn_clear = ttk.Button(top, text=s["clear"])
     btn_convert = ttk.Button(top, text=s["convert"])
-    for b in (btn_add, btn_clear, btn_convert):
+    for b in (btn_add, btn_folder, btn_clear, btn_convert):
         b.pack(side="left", padx=(0, 6))
+    recursive = tk.BooleanVar(value=True)
+    ttk.Checkbutton(top, text=s["subfolders"], variable=recursive).pack(side="left")
 
     body = ttk.PanedWindow(root, orient="horizontal")
     body.pack(fill="both", expand=True, padx=8)
@@ -187,12 +214,27 @@ def main() -> None:
         for b in (btn_copy, btn_save, btn_save_all):
             b.state(["!disabled"] if has_ok else ["disabled"])
 
-    def add_files(paths) -> None:
+    def add_files(paths, base: Path = None) -> None:
+        added = 0
         for p in paths:
-            p = str(p)
-            if p and p not in files and Path(p).is_file():
-                files.append(p)
-                listbox.insert("end", Path(p).name)
+            pp = Path(str(p))
+            if pp.is_dir():
+                found = scan_folder(pp, recursive.get())
+                if not found:
+                    status.set(s["none_found"])
+                add_files(found, base=pp)
+                continue
+            key = str(pp)
+            if pp.is_file() and key not in files:
+                files.append(key)
+                try:
+                    shown = str(pp.relative_to(base)) if base else pp.name
+                except ValueError:
+                    shown = pp.name
+                listbox.insert("end", shown)
+                added += 1
+        if added:
+            status.set(s["added"].format(n=added))
         refresh_state()
 
     def current() -> str:
@@ -210,6 +252,11 @@ def main() -> None:
             title=s["add"], filetypes=[(s["all_files"], "*.*")]
         )
         add_files(chosen)
+
+    def on_add_folder() -> None:
+        folder = filedialog.askdirectory(title=s["pick_input"])
+        if folder:
+            add_files([folder])
 
     def on_clear() -> None:
         files.clear()
@@ -289,6 +336,7 @@ def main() -> None:
         status.set(s["saved_n"].format(n=n, path=folder))
 
     btn_add.configure(command=on_add)
+    btn_folder.configure(command=on_add_folder)
     btn_clear.configure(command=on_clear)
     btn_convert.configure(command=on_convert)
     btn_copy.configure(command=on_copy)
